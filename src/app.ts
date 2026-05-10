@@ -1,4 +1,6 @@
 import express from 'express'
+import { sql } from 'drizzle-orm'
+import { db } from './db'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
@@ -18,6 +20,16 @@ app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') }))
 app.use('/api/v1', webhookRouter)
 
 app.use(express.json())
+
+app.get('/health', async (_req, res) => {
+  try {
+    await db.execute(sql`SELECT 1`)
+    res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() })
+  } catch {
+    res.status(503).json({ status: 'error', db: 'unreachable', timestamp: new Date().toISOString() })
+  }
+})
+
 
 const publicLimiter = rateLimit({ windowMs: 60_000, max: 100 })
 const authedLimiter = rateLimit({ windowMs: 60_000, max: 300 })
